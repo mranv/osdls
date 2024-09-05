@@ -13,7 +13,7 @@ ENV LOGSTASH_KEYSTORE_PASS=Anubhav@321
 # Update the system and install dependencies
 RUN dnf update -y && \
     dnf install -y epel-release dnf-utils wget bzip2 policycoreutils-python-utils \
-    python3 python3-devel findutils && \
+    python3 python3-devel findutils java-11-openjdk-devel && \
     dnf config-manager --set-enabled powertools && \
     dnf clean all
 
@@ -39,22 +39,19 @@ RUN rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch && \
 
 # Configure Wazuh manager
 RUN /var/ossec/bin/wazuh-control start && \
-    /var/ossec/bin/wazuh-keystore -f indexer -k username -v "${OPENSEARCH_USERNAME}" && \
-    /var/ossec/bin/wazuh-keystore -f indexer -k password -v "${OPENSEARCH_PASSWORD}" && \
+    sleep 10 && \
+    /var/ossec/bin/wazuh-control status && \
     /var/ossec/bin/wazuh-control stop
 
 # Configure Logstash
-RUN mkdir -p /etc/logstash/conf.d /etc/logstash/templates /etc/logstash/opensearch-certs && \
-    curl -o /etc/logstash/templates/wazuh.json https://packages.wazuh.com/integrations/opensearch/4.x-2.x/dashboards/wz-os-4.x-2.x-template.json
-
-# Copy Logstash configuration
-COPY logstash/config/wazuh-opensearch.conf /etc/logstash/conf.d/wazuh-opensearch.conf
-
-# Set proper permissions
-RUN usermod -a -G wazuh logstash && \
+RUN mkdir -p /etc/logstash/conf.d /etc/logstash/templates && \
+    curl -o /etc/logstash/templates/wazuh.json https://packages.wazuh.com/integrations/opensearch/4.x-2.x/dashboards/wz-os-4.x-2.x-template.json && \
     chown -R logstash:logstash /etc/logstash/conf.d /etc/logstash/templates
 
-# Create Logstash keystore and add credentials
+# Add Logstash configuration
+COPY logstash/config/wazuh-opensearch.conf /etc/logstash/conf.d/wazuh-opensearch.conf
+
+# Set up Logstash keystore
 RUN mkdir -p /etc/sysconfig && \
     echo "LOGSTASH_KEYSTORE_PASS=${LOGSTASH_KEYSTORE_PASS}" | tee /etc/sysconfig/logstash && \
     chown root:root /etc/sysconfig/logstash && \
@@ -63,14 +60,18 @@ RUN mkdir -p /etc/sysconfig && \
     echo "${OPENSEARCH_USERNAME}" | /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add OPENSEARCH_USERNAME && \
     echo "${OPENSEARCH_PASSWORD}" | /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add OPENSEARCH_PASSWORD
 
-# Expose ports
-EXPOSE 55000/tcp 1514/tcp 1515/tcp 514/udp 1516/tcp 5044/tcp
+# Add logstash user to wazuh group
+RUN usermod -a -G wazuh logstash
+
+# Expose Wazuh manager and Logstash ports
+EXPOSE 1514/udp 1515/tcp 1516/tcp 55000/tcp 5044/tcp
 
 # Create a startup script
 RUN echo '#!/bin/bash' > /start.sh && \
     echo 'sed -i "s/<OPENSEARCH_ADDRESS>/${OPENSEARCH_HOST}:${OPENSEARCH_PORT}/g" /etc/logstash/conf.d/wazuh-opensearch.conf' >> /start.sh && \
     echo '/var/ossec/bin/wazuh-control start' >> /start.sh && \
-    echo '/usr/share/logstash/bin/logstash -f /etc/logstash/conf.d/wazuh-opensearch.conf --path.settings /etc/logstash' >> /start.sh && \
+    echo '/usr/share/logstash/bin/logstash -f /etc/logstash/conf.d/wazuh-opensearch.conf --path.settings /etc/logstash &' >> /start.sh && \
+    echo 'tail -f /var/ossec/logs/ossec.log' >> /start.sh && \
     chmod +x /start.sh
 
 # Set the entrypoint to our startup script
