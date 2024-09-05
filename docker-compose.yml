@@ -1,4 +1,5 @@
 version: '3'
+
 services:
   opensearch-node1:
     image: opensearchproject/opensearch:latest
@@ -11,7 +12,7 @@ services:
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
-      - ssl_certificate_verification=true  # Ensure SSL verification is enabled
+      - ssl_certificate_verification=true # Ensure SSL verification is enabled
     ulimits:
       memlock:
         soft: -1
@@ -38,7 +39,7 @@ services:
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
-      - ssl_certificate_verification=true  # Ensure SSL verification is enabled
+      - ssl_certificate_verification=true # Ensure SSL verification is enabled
     ulimits:
       memlock:
         soft: -1
@@ -64,7 +65,7 @@ services:
       - opensearch-net
 
   wazuh:
-    image: wazuh/wazuh-manager:4.8.2
+    image: osdls:latest
     container_name: wazuh
     ports:
       - "1514:1514/udp"
@@ -83,41 +84,6 @@ services:
       - wazuh-api-configuration:/var/ossec/api/configuration
     networks:
       - opensearch-net
-
-  logstash:
-    image: docker.elastic.co/logstash/logstash:7.10.2
-    container_name: logstash
-    user: root
-    volumes:
-      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
-      - ./logstash/config:/usr/share/logstash/config:ro
-      - ./logstash/templates:/etc/logstash/templates:ro
-      - ./logstash/certs:/etc/logstash/certs:ro
-      - wazuh-logs:/var/ossec/logs:ro
-    environment:
-      LS_JAVA_OPTS: "-Xmx512m -Xms512m"
-      LOGSTASH_KEYSTORE_PASS: ${LOGSTASH_KEYSTORE_PASS}
-      OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME}
-      OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD}
-    networks:
-      - opensearch-net
-    depends_on:
-      - opensearch-node1
-      - opensearch-node2
-      - wazuh
-    command: >
-      bash -c '
-        bin/logstash-plugin install --no-verify logstash-output-opensearch
-        if getent group wazuh > /dev/null 2>&1; then
-          usermod -a -G wazuh logstash
-        else
-          useradd wazuh
-          groupadd -g 1000 wazuh
-          usermod -a -G wazuh logstash
-        fi
-        chown -R logstash:logstash /usr/share/logstash/data
-        su logstash -c "bin/logstash -f /usr/share/logstash/pipeline/wazuh-opensearch.conf --path.settings /usr/share/logstash/config"
-      '
 
 volumes:
   opensearch-data1:

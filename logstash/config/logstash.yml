@@ -1,4 +1,0 @@
-http.host: "0.0.0.0"
-xpack.monitoring.enabled: false
-path.config: /usr/share/logstash/pipeline
-path.logs: /var/log/logstash

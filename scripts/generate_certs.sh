@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mkdir -p logstash/certs
+mkdir -p opensearch/certs
 
 openssl req -x509 -newkey rsa:4096 -keyout logstash/certs/key.pem -out logstash/certs/root-ca.pem -days 365 -nodes -subj "/CN=opensearch"
 
