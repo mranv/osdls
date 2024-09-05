@@ -11,16 +11,6 @@ services:
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
-      - DISABLE_SECURITY_PLUGIN=false
-      - DISABLE_INSTALL_DEMO_CONFIG=true
-      - PLUGINS_SECURITY_SSL_HTTP_ENABLED=true
-      - PLUGINS_SECURITY_SSL_TRANSPORT_ENABLED=true
-      - PLUGINS_SECURITY_SSL_HTTP_PEMCERT_FILEPATH=certs/node1.pem
-      - PLUGINS_SECURITY_SSL_HTTP_PEMKEY_FILEPATH=certs/node1-key.pem
-      - PLUGINS_SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH=certs/root-ca.pem
-      - PLUGINS_SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH=certs/node1.pem
-      - PLUGINS_SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH=certs/node1-key.pem
-      - PLUGINS_SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH=certs/root-ca.pem
     ulimits:
       memlock:
         soft: -1
@@ -30,7 +20,6 @@ services:
         hard: 65536
     volumes:
       - opensearch-data1:/usr/share/opensearch/data
-      - ./opensearch/certs:/usr/share/opensearch/config/certs
     ports:
       - 9200:9200
       - 9600:9600
@@ -48,16 +37,6 @@ services:
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
-      - DISABLE_SECURITY_PLUGIN=false
-      - DISABLE_INSTALL_DEMO_CONFIG=true
-      - PLUGINS_SECURITY_SSL_HTTP_ENABLED=true
-      - PLUGINS_SECURITY_SSL_TRANSPORT_ENABLED=true
-      - PLUGINS_SECURITY_SSL_HTTP_PEMCERT_FILEPATH=certs/node2.pem
-      - PLUGINS_SECURITY_SSL_HTTP_PEMKEY_FILEPATH=certs/node2-key.pem
-      - PLUGINS_SECURITY_SSL_HTTP_PEMTRUSTEDCAS_FILEPATH=certs/root-ca.pem
-      - PLUGINS_SECURITY_SSL_TRANSPORT_PEMCERT_FILEPATH=certs/node2.pem
-      - PLUGINS_SECURITY_SSL_TRANSPORT_PEMKEY_FILEPATH=certs/node2-key.pem
-      - PLUGINS_SECURITY_SSL_TRANSPORT_PEMTRUSTEDCAS_FILEPATH=certs/root-ca.pem
     ulimits:
       memlock:
         soft: -1
@@ -67,7 +46,6 @@ services:
         hard: 65536
     volumes:
       - opensearch-data2:/usr/share/opensearch/data
-      - ./opensearch/certs:/usr/share/opensearch/config/certs
     networks:
       - opensearch-net
 
@@ -76,13 +54,10 @@ services:
     container_name: opensearch-dashboards
     ports:
       - 5601:5601
+    expose:
+      - "5601"
     environment:
       OPENSEARCH_HOSTS: '["https://opensearch-node1:9200","https://opensearch-node2:9200"]'
-      OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME}
-      OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD}
-      OPENSEARCH_SSL_VERIFICATIONMODE: none
-    volumes:
-      - ./opensearch/certs:/usr/share/opensearch-dashboards/config/certs
     networks:
       - opensearch-net
 
@@ -99,6 +74,8 @@ services:
       - OPENSEARCH_PORT=9200
       - OPENSEARCH_USERNAME=${OPENSEARCH_USERNAME}
       - OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD}
+      - OPENSEARCH_URL=http://opensearch-node1:9200
+      - FILEBEAT_SSL_VERIFICATION_MODE=none
     volumes:
       - wazuh-config:/var/ossec/etc
       - wazuh-logs:/var/ossec/logs
@@ -109,10 +86,11 @@ services:
       - wazuh-agentless:/var/ossec/agentless
       - wazuh-wodles:/var/ossec/wodles
       - wazuh-api-configuration:/var/ossec/api/configuration
-      - ./opensearch/certs:/etc/logstash/opensearch-certs
     networks:
       - opensearch-net
-
+    depends_on:
+      - opensearch-node1
+      
 volumes:
   opensearch-data1:
   opensearch-data2:
