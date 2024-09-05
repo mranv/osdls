@@ -1,5 +1,4 @@
 version: '3'
-
 services:
   opensearch-node1:
     image: opensearchproject/opensearch:latest
@@ -61,7 +60,7 @@ services:
       - opensearch-net
 
   wazuh:
-    image: wazuh/wazuh-manager:latest
+    image: wazuh/wazuh-manager:4.3.10
     container_name: wazuh
     ports:
       - "1514:1514/udp"
@@ -92,22 +91,14 @@ services:
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
       LOGSTASH_KEYSTORE_PASS: ${LOGSTASH_KEYSTORE_PASS}
+      OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME}
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD}
     networks:
       - opensearch-net
     depends_on:
       - opensearch-node1
       - opensearch-node2
       - wazuh
-    command: >
-      bash -c '
-        bin/logstash-plugin install --no-verify logstash-output-opensearch
-        mkdir -p /etc/logstash/templates
-        curl -o /etc/logstash/templates/wazuh.json https://packages.wazuh.com/integrations/opensearch/4.x-2.x/dashboards/wz-os-4.x-2.x-template.json
-        echo "${LOGSTASH_KEYSTORE_PASS}" | bin/logstash-keystore --path.settings /usr/share/logstash/config create
-        echo "${OPENSEARCH_USERNAME}" | bin/logstash-keystore --path.settings /usr/share/logstash/config add OPENSEARCH_USERNAME
-        echo "${OPENSEARCH_PASSWORD}" | bin/logstash-keystore --path.settings /usr/share/logstash/config add OPENSEARCH_PASSWORD
-        /usr/local/bin/docker-entrypoint
-      '
 
 volumes:
   opensearch-data1:
