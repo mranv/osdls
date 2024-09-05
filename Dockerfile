@@ -22,7 +22,7 @@ RUN dnf update -y && \
     dnf install -y epel-release dnf-utils && \
     dnf config-manager --set-enabled powertools && \
     dnf install -y wget bzip2 policycoreutils-python-utils \
-    python3 python3-devel java-11-openjdk-devel && \
+    python3 python3-devel && \
     dnf clean all
 
 # Download Wazuh GPG key and manager package
