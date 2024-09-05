@@ -41,16 +41,16 @@ validate_password "$OPENSEARCH_PASSWORD" "OPENSEARCH_PASSWORD"
 
 # Run the individual scripts
 echo "Generating SSL certificates..."
-.scripts/generate_certs.sh
+scripts/generate_certs.sh
 
 echo "Building custom Docker image..."
-.scripts/build_image.sh
+scripts/build_image.sh
 
 echo "Starting services..."
-.scripts/start_services.sh
+scripts/start_services.sh
 
 echo "Configuring OpenSearch..."
-.scripts/configure_opensearch.sh
+scripts/configure_opensearch.sh
 
 echo "Setup complete. Services are starting."
 echo "You can check their status with 'docker-compose ps' or 'docker compose ps'"
