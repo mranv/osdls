@@ -4,7 +4,6 @@ FROM rockylinux:8
 # Set environment variables
 ARG WAZUH_VERSION=4.8.2
 ARG LOGSTASH_VERSION=8.15.0
-
 # Environment variables from .env file
 ARG OPENSEARCH_INITIAL_ADMIN_PASSWORD
 ARG LOGSTASH_KEYSTORE_PASS
@@ -20,16 +19,24 @@ ENV OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD}
 
 # Update the system and install dependencies
 RUN dnf update -y && \
-    dnf install -y epel-release dnf-utils wget bzip2 gcc gcc-c++ make policycoreutils-python-utils \
-    automake autoconf libtool openssl-devel curl-devel cmake python3 python3-devel java-11-openjdk-devel && \
+    dnf install -y epel-release dnf-utils && \
+    dnf config-manager --set-enabled powertools && \
+    dnf install -y wget bzip2 policycoreutils-python-utils \
+    python3 python3-devel java-11-openjdk-devel && \
     dnf clean all
 
+# Download Wazuh GPG key and manager package
+RUN curl -o /tmp/GPG-KEY-WAZUH https://packages.wazuh.com/key/GPG-KEY-WAZUH && \
+    curl -o /tmp/wazuh-manager-4.8.2-1.x86_64.rpm https://packages.wazuh.com/4.x/yum/wazuh-manager-4.8.2-1.x86_64.rpm
+
 # Install Wazuh manager
-RUN curl -Ls https://github.com/wazuh/wazuh/archive/v${WAZUH_VERSION}.tar.gz | tar zx && \
-    cd wazuh-${WAZUH_VERSION} && \
-    ./install.sh && \
-    cd .. && \
-    rm -rf wazuh-${WAZUH_VERSION}
+RUN rpm --import /tmp/GPG-KEY-WAZUH && \
+    rpm -ivh /tmp/wazuh-manager*.rpm && \
+    rm /tmp/GPG-KEY-WAZUH /tmp/wazuh-manager*.rpm
+
+# Configure Wazuh manager
+RUN /var/ossec/bin/wazuh-keystore -f indexer -k username -v ${OPENSEARCH_USERNAME} && \
+    /var/ossec/bin/wazuh-keystore -f indexer -k password -v ${OPENSEARCH_PASSWORD}
 
 # Install Logstash
 RUN rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch && \
@@ -57,4 +64,6 @@ RUN usermod -a -G wazuh logstash
 EXPOSE 55000/tcp 1514/tcp 1515/tcp 514/udp 1516/tcp 5044/tcp
 
 # Start Wazuh and Logstash
-CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisord.conf"]
+CMD systemctl enable wazuh-manager && \
+    systemctl start wazuh-manager && \
+    /usr/bin/supervisord -n -c /etc/supervisord.conf
