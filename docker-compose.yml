@@ -11,6 +11,7 @@ services:
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+      - ssl_certificate_verification=true  # Ensure SSL verification is enabled
     ulimits:
       memlock:
         soft: -1
@@ -37,6 +38,7 @@ services:
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+      - ssl_certificate_verification=true  # Ensure SSL verification is enabled
     ulimits:
       memlock:
         soft: -1
@@ -109,14 +111,14 @@ services:
         if getent group wazuh > /dev/null 2>&1; then
           usermod -a -G wazuh logstash
         else
+          useradd wazuh
           groupadd -g 1000 wazuh
           usermod -a -G wazuh logstash
         fi
         chown -R logstash:logstash /usr/share/logstash/data
         su logstash -c "bin/logstash -f /usr/share/logstash/pipeline/wazuh-opensearch.conf --path.settings /usr/share/logstash/config"
       '
-      
-    
+
 volumes:
   opensearch-data1:
   opensearch-data2:
