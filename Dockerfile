@@ -32,7 +32,7 @@ RUN /var/ossec/bin/wazuh-keystore -f indexer -k username -v "${OPENSEARCH_USERNA
 RUN rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch && \
     echo "[logstash-${LOGSTASH_VERSION}]" > /etc/yum.repos.d/logstash.repo && \
     echo "name=Elastic repository for ${LOGSTASH_VERSION} packages" >> /etc/yum.repos.d/logstash.repo && \
-    echo "baseurl=https://artifacts.elastic.co/packages/${LOGSTASH_VERSION%.*}/yum" >> /etc/yum.repos.d/logstash.repo && \
+    echo "baseurl=https://artifacts.elastic.co/packages/8.x/yum" >> /etc/yum.repos.d/logstash.repo && \
     echo "gpgcheck=1" >> /etc/yum.repos.d/logstash.repo && \
     echo "gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch" >> /etc/yum.repos.d/logstash.repo && \
     echo "enabled=1" >> /etc/yum.repos.d/logstash.repo && \
