@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Function to prompt for password
 get_password() {
     local prompt="$1"
@@ -14,6 +16,23 @@ get_password() {
     done
     echo "$password"
 }
+
+# Check if Docker is installed and running
+if ! command -v docker &> /dev/null; then
+    echo "Docker is not installed. Please install Docker and try again."
+    exit 1
+fi
+
+if ! docker info &> /dev/null; then
+    echo "Docker daemon is not running. Please start Docker and try again."
+    exit 1
+fi
+
+# Check if Docker Compose is installed
+if ! command -v docker-compose &> /dev/null; then
+    echo "Docker Compose is not installed. Please install Docker Compose and try again."
+    exit 1
+fi
 
 # Prompt for passwords
 OPENSEARCH_INITIAL_ADMIN_PASSWORD=$(get_password "Enter OpenSearch initial admin password")
@@ -82,34 +101,8 @@ openssl req -x509 -newkey rsa:4096 -keyout logstash/certs/key.pem -out logstash/
 cp docker-compose.yml docker-compose.yml.bak
 
 # Add Logstash service to docker-compose.yml
-sed -i '/services:/a\
-  logstash:\
-    image: docker.elastic.co/logstash/logstash:7.10.2\
-    container_name: logstash\
-    volumes:\
-      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro\
-      - ./logstash/config:/usr/share/logstash/config:ro\
-      - ./logstash/templates:/etc/logstash/templates:ro\
-      - ./logstash/certs:/etc/logstash/certs:ro\
-    environment:\
-      LS_JAVA_OPTS: "-Xmx256m -Xms256m"\
-      LOGSTASH_KEYSTORE_PASS: ${LOGSTASH_KEYSTORE_PASS}\
-    networks:\
-      - opensearch-net\
-    depends_on:\
-      - opensearch-node1\
-      - opensearch-node2\
-      - wazuh\
-    command: >\
-      bash -c '\''
-        bin/logstash-plugin install --no-verify logstash-output-opensearch
-        mkdir -p /etc/logstash/templates
-        curl -o /etc/logstash/templates/wazuh.json https://packages.wazuh.com/integrations/opensearch/4.x-2.x/dashboards/wz-os-4.x-2.x-template.json
-        echo "${LOGSTASH_KEYSTORE_PASS}" | bin/logstash-keystore --path.settings /usr/share/logstash/config create
-        echo "${OPENSEARCH_USERNAME}" | bin/logstash-keystore --path.settings /usr/share/logstash/config add OPENSEARCH_USERNAME
-        echo "${OPENSEARCH_PASSWORD}" | bin/logstash-keystore --path.settings /usr/share/logstash/config add OPENSEARCH_PASSWORD
-        /usr/local/bin/docker-entrypoint
-      '\'' ' docker-compose.yml
+# Using awk instead of sed for better multi-line insertion
+awk '/services:/{print;print "  logstash:";print "    image: docker.elastic.co/logstash/logstash:7.10.2";print "    container_name: logstash";print "    volumes:";print "      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro";print "      - ./logstash/config:/usr/share/logstash/config:ro";print "      - ./logstash/templates:/etc/logstash/templates:ro";print "      - ./logstash/certs:/etc/logstash/certs:ro";print "    environment:";print "      LS_JAVA_OPTS: \"-Xmx256m -Xms256m\"";print "      LOGSTASH_KEYSTORE_PASS: ${LOGSTASH_KEYSTORE_PASS}";print "    networks:";print "      - opensearch-net";print "    depends_on:";print "      - opensearch-node1";print "      - opensearch-node2";print "      - wazuh";print "    command: >";print "      bash -c '";print "        bin/logstash-plugin install --no-verify logstash-output-opensearch";print "        mkdir -p /etc/logstash/templates";print "        curl -o /etc/logstash/templates/wazuh.json https://packages.wazuh.com/integrations/opensearch/4.x-2.x/dashboards/wz-os-4.x-2.x-template.json";print "        echo \"${LOGSTASH_KEYSTORE_PASS}\" | bin/logstash-keystore --path.settings /usr/share/logstash/config create";print "        echo \"${OPENSEARCH_USERNAME}\" | bin/logstash-keystore --path.settings /usr/share/logstash/config add OPENSEARCH_USERNAME";print "        echo \"${OPENSEARCH_PASSWORD}\" | bin/logstash-keystore --path.settings /usr/share/logstash/config add OPENSEARCH_PASSWORD";print "        /usr/local/bin/docker-entrypoint";print "      '";next}1' docker-compose.yml > docker-compose.yml.new && mv docker-compose.yml.new docker-compose.yml
 
 echo "Setup complete. Starting Docker Compose..."
 
