@@ -1,5 +1,32 @@
 #!/bin/bash
 
+# Function to prompt for password
+get_password() {
+    local prompt="$1"
+    local password
+    while true; do
+        read -s -p "$prompt: " password
+        echo
+        read -s -p "Confirm $prompt: " password2
+        echo
+        [ "$password" = "$password2" ] && break
+        echo "Passwords do not match. Please try again."
+    done
+    echo "$password"
+}
+
+# Prompt for passwords
+OPENSEARCH_INITIAL_ADMIN_PASSWORD=$(get_password "Enter OpenSearch initial admin password")
+LOGSTASH_KEYSTORE_PASS=$(get_password "Enter Logstash keystore password")
+OPENSEARCH_USERNAME="admin"
+OPENSEARCH_PASSWORD=$(get_password "Enter OpenSearch password for Logstash")
+
+# Export passwords as environment variables
+export OPENSEARCH_INITIAL_ADMIN_PASSWORD
+export LOGSTASH_KEYSTORE_PASS
+export OPENSEARCH_USERNAME
+export OPENSEARCH_PASSWORD
+
 # Create Logstash directory structure
 mkdir -p logstash/config logstash/pipeline logstash/certs
 
@@ -84,9 +111,10 @@ sed -i '/services:/a\
         /usr/local/bin/docker-entrypoint
       '\'' ' docker-compose.yml
 
-echo "Setup complete. The Logstash configuration has been added to your existing setup."
-echo "Please ensure you have set the following environment variables before running docker-compose:"
-echo "export LOGSTASH_KEYSTORE_PASS=your_keystore_password"
-echo "export OPENSEARCH_USERNAME=your_opensearch_username"
-echo "export OPENSEARCH_PASSWORD=your_opensearch_password"
-echo "Then run 'docker-compose up -d' to start or update the services."
+echo "Setup complete. Starting Docker Compose..."
+
+# Start Docker Compose
+docker-compose up -d
+
+echo "Services are starting. You can check their status with 'docker-compose ps'"
+echo "OpenSearch Dashboards will be available at http://localhost:5601 once it's fully started."
