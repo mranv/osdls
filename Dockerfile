@@ -6,6 +6,9 @@ ENV WAZUH_VERSION=4.8.2
 ENV LOGSTASH_VERSION=8.15.0
 ENV OPENSEARCH_USERNAME=admin
 ENV OPENSEARCH_PASSWORD=Anubhav@321
+ENV OPENSEARCH_HOST=localhost
+ENV OPENSEARCH_PORT=9200
+ENV LOGSTASH_KEYSTORE_PASS=Anubhav@321
 
 # Update the system and install dependencies
 RUN dnf update -y && \
@@ -42,16 +45,36 @@ RUN rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch && \
     /usr/share/logstash/bin/logstash-plugin install logstash-output-opensearch
 
 # Configure Logstash
-RUN mkdir -p /etc/logstash/conf.d /etc/logstash/templates
+RUN mkdir -p /etc/logstash/conf.d /etc/logstash/templates /etc/logstash/opensearch-certs
 COPY logstash/config/logstash.conf /etc/logstash/conf.d/wazuh-opensearch.conf
 COPY logstash/templates/wazuh.json /etc/logstash/templates/wazuh.json
 COPY logstash/Gemfile /opt/logstash/Gemfile
 
-# Add logstash user to wazuh group
-RUN usermod -a -G wazuh logstash
+# Copy OpenSearch certificate (assuming it's in the same directory as the Dockerfile)
+COPY root-ca.pem /etc/logstash/opensearch-certs/root-ca.pem
+
+# Set proper permissions
+RUN chmod -R 755 /etc/logstash/opensearch-certs/root-ca.pem && \
+    usermod -a -G wazuh logstash
+
+# Setup Logstash keystore
+RUN echo "${LOGSTASH_KEYSTORE_PASS}" > /tmp/keystore_pass && \
+    LOGSTASH_KEYSTORE_PASS=$(cat /tmp/keystore_pass) && \
+    /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash create && \
+    echo "${OPENSEARCH_USERNAME}" | /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add OPENSEARCH_USERNAME && \
+    echo "${OPENSEARCH_PASSWORD}" | /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add OPENSEARCH_PASSWORD && \
+    rm /tmp/keystore_pass
 
 # Expose ports
 EXPOSE 55000/tcp 1514/tcp 1515/tcp 514/udp 1516/tcp 5044/tcp
 
-# Start Wazuh and Logstash
-CMD ["/bin/bash", "-c", "systemctl enable wazuh-manager && systemctl start wazuh-manager && /usr/bin/supervisord -n -c /etc/supervisord.conf"]
+# Create a startup script
+RUN echo '#!/bin/bash' > /start.sh && \
+    echo 'sed -i "s/OPENSEARCH_HOST/${OPENSEARCH_HOST}/g" /etc/logstash/conf.d/wazuh-opensearch.conf' >> /start.sh && \
+    echo 'sed -i "s/OPENSEARCH_PORT/${OPENSEARCH_PORT}/g" /etc/logstash/conf.d/wazuh-opensearch.conf' >> /start.sh && \
+    echo '/var/ossec/bin/wazuh-control start' >> /start.sh && \
+    echo '/usr/share/logstash/bin/logstash -f /etc/logstash/conf.d/wazuh-opensearch.conf --path.settings /etc/logstash' >> /start.sh && \
+    chmod +x /start.sh
+
+# Set the entrypoint to our startup script
+ENTRYPOINT ["/start.sh"]

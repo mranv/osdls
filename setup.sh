@@ -25,18 +25,6 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-# Check for Docker Compose and set the appropriate command
-if command_exists docker-compose; then
-    DOCKER_COMPOSE_CMD="docker-compose"
-elif docker compose version >/dev/null 2>&1; then
-    DOCKER_COMPOSE_CMD="docker compose"
-else
-    echo "Docker Compose not found. Please install Docker Compose or Docker Compose v2 and try again."
-    exit 1
-fi
-
-echo "Using Docker Compose command: $DOCKER_COMPOSE_CMD"
-
 # Validate passwords
 validate_password() {
     local pass="$1"
@@ -51,26 +39,22 @@ validate_password() {
 validate_password "$OPENSEARCH_INITIAL_ADMIN_PASSWORD" "OPENSEARCH_INITIAL_ADMIN_PASSWORD"
 validate_password "$OPENSEARCH_PASSWORD" "OPENSEARCH_PASSWORD"
 
-# Build the custom Docker image
+# Run the individual scripts
+echo "Generating SSL certificates..."
+.scripts/generate_certs.sh
+
 echo "Building custom Docker image..."
-docker build -t osdls:latest .
+.scripts/build_image.sh
 
-# Update the docker-compose.yml file to use the custom image
-sed -i 's|image: wazuh/wazuh-manager:4.8.2|image: osdls:latest|g' docker-compose.yml
+echo "Starting services..."
+.scripts/start_services.sh
 
-# Start Docker Compose
-echo "Starting Docker Compose..."
-$DOCKER_COMPOSE_CMD up -d
-
-# Check if Docker Compose was successful
-if [ $? -ne 0 ]; then
-    echo "Error: Docker Compose failed to start the services."
-    exit 1
-fi
+echo "Configuring OpenSearch..."
+.scripts/configure_opensearch.sh
 
 echo "Setup complete. Services are starting."
-echo "You can check their status with '$DOCKER_COMPOSE_CMD ps'"
-echo "OpenSearch Dashboards will be available at http://localhost:5601 once it's fully started."
+echo "You can check their status with 'docker-compose ps' or 'docker compose ps'"
+echo "OpenSearch Dashboards will be available at https://localhost:5601 once it's fully started."
 echo "Please wait a few minutes for all services to initialize completely."
-echo "Setup complete. Please import the Wazuh dashboards in OpenSearch Dashboards manually."
-echo "Use the file: templates/wz-os-4.x-2.x-dashboards.ndjson"
+echo "Please manually import Wazuh dashboards in OpenSearch Dashboards."
+echo "Use the file: logstash/templates/wz-os-4.x-2.x-dashboards.ndjson"
