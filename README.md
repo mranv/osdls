@@ -1,141 +1,131 @@
-# Wazuh-OpenSearch-Logstash Integration Suite (2025 Edition)
+<h1 align="center">
+<br>
+<img src=assets/osdls.png >
+<br>
+<strong>os / osd + logstash + wazuh</strong>
+</h1>
 
-## Overview
 
-This state-of-the-art integration suite combines Wazuh 5.0, OpenSearch 3.0, and Logstash 9.0 to create a robust, AI-enhanced security information and event management (SIEM) system. Leveraging quantum-resistant encryption and neural network-based anomaly detection, this setup provides unparalleled security analytics for enterprise-grade cybersecurity in the post-quantum era.
+This project provides a seamless integration between Wazuh, a free and open-source security platform, and OpenSearch, a community-driven, open-source search and analytics suite. This integration allows for efficient log management, security event analysis, and real-time monitoring of your infrastructure.
 
-## Key Features
+The setup includes:
+- Wazuh manager for security event collection and analysis
+- OpenSearch cluster for powerful search and analytics capabilities
+- OpenSearch Dashboards for visualization and data exploration
+- Logstash for data processing and ingestion into OpenSearch
 
-- Quantum-resistant TLS for all inter-service communication
-- AI-powered real-time threat detection and response
-- Blockchain-based integrity verification for log data
-- Automated, self-healing infrastructure with Kubernetes integration
-- Edge computing support for distributed SIEM architecture
-- Natural language query interface for security analytics
+## Features
+
+- Custom Docker image combining Wazuh and Logstash for simplified deployment
+- Two-node OpenSearch cluster for high availability
+- Automated setup process with environment validation
+- Centralized configuration management
+- Scalable architecture suitable for production environments
 
 ## Prerequisites
 
-- Docker 25.0 or higher with GPU acceleration support
-- Kubernetes 1.30 or higher
-- Quantum-safe SSH key for secure access
-- Neural processing unit (NPU) with at least 128 TFLOPS
-- 1 TB NVMe SSD for high-speed data processing
-- Stable quantum internet connection (min 10 Qbps)
-
-## File Structure
-
-```
-project_root/
-├── docker-compose.yml              # Container orchestration
-├── .env                            # Environment variables (encrypted)
-├── setup.sh                        # Main setup script
-├── logstash/
-│   ├── config/
-│   │   ├── logstash.yml            # Logstash core config
-│   │   └── pipelines.yml           # Pipeline definitions
-│   ├── pipeline/
-│   │   └── wazuh-opensearch.conf   # Wazuh to OpenSearch pipeline
-│   └── certs/
-│       └── quantum_root_ca.pem     # Quantum-resistant root CA
-├── scripts/
-│   ├── generate_quantum_certs.sh   # Quantum-safe certificate generation
-│   └── configure_opensearch.sh     # OpenSearch AI model initialization
-└── ai_models/
-    ├── anomaly_detection.onnx      # Pre-trained anomaly detection model
-    └── nlp_query_engine.pkl        # Natural language processing model
-```
+- Docker (version 19.03 or later)
+- Docker Compose (version 1.27 or later)
+- Git
+- Bash shell
+- At least 4GB of RAM available for the containers
 
 ## Quick Start
 
 1. Clone the repository:
    ```
-   git clone --branch v5.0 https://github.com/anubhavg-icpl/osdls.git
-   ```
-
-2. Navigate to the project directory:
-   ```
+   git clone https://github.com/anubhavg-icpl/osdls.git
    cd osdls
    ```
 
-3. Initialize the quantum encryption for the .env file:
+2. Create a `.env` file in the project root with the following content:
    ```
-   quantum-encrypt .env
+   OPENSEARCH_INITIAL_ADMIN_PASSWORD=your_secure_password
+   OPENSEARCH_PASSWORD=your_secure_password
+   OPENSEARCH_USERNAME=admin
+   LOGSTASH_KEYSTORE_PASS=your_secure_password
    ```
+   Replace `your_secure_password` with strong, unique passwords.
 
-4. Run the setup script:
+3. Run the setup script:
    ```
+   chmod +x setup.sh
    ./setup.sh
    ```
 
-5. Access the OpenSearch Dashboards at `https://localhost:5601` using quantum-safe authentication.
+4. Once the setup is complete, access OpenSearch Dashboards at `http://localhost:5601`.
 
-## Advanced Configuration
+## Detailed Setup
 
-### AI Model Tuning
+The `setup.sh` script performs the following actions:
+1. Validates the environment and prerequisites
+2. Builds a custom Docker image containing Wazuh and Logstash
+3. Updates the `docker-compose.yml` file to use the custom image
+4. Starts the services using Docker Compose
 
-To fine-tune the anomaly detection model:
+For manual setup or customization, refer to the individual component configurations in the `docker-compose.yml` file.
 
-1. Access the AI tuning interface:
+## Configuration
+
+### Wazuh
+
+Wazuh configuration files are located in the `wazuh-config` volume. To modify Wazuh settings:
+
+1. Access the Wazuh container:
    ```
-   ./scripts/ai_tune.sh
+   docker exec -it wazuh /bin/bash
    ```
-
-2. Provide your specific threat landscape data when prompted.
-
-3. The neural network will automatically adjust its parameters for optimal performance in your environment.
-
-### Quantum Key Distribution (QKD)
-
-For enhanced security, enable QKD:
-
-1. Ensure your quantum network interface is active:
+2. Edit the configuration files in `/var/ossec/etc/`.
+3. Restart the Wazuh manager:
    ```
-   qnet-cli status
-   ```
-
-2. Initialize QKD:
-   ```
-   ./scripts/init_qkd.sh
+   supervisorctl restart wazuh-manager
    ```
 
-3. QKD will now be used for all inter-service secret sharing.
+### OpenSearch
 
-## Scaling
+OpenSearch settings can be adjusted in the `docker-compose.yml` file under the `opensearch-node1` and `opensearch-node2` services. For advanced configurations, refer to the [OpenSearch documentation](https://opensearch.org/docs/latest/).
 
-This suite is designed to scale horizontally across quantum and classical infrastructure. To add nodes:
+### Logstash
 
-1. Update `kubernetes-config.yml` with new node specifications.
-2. Apply the configuration:
-   ```
-   quantum-kubectl apply -f kubernetes-config.yml
-   ```
+Logstash configuration is located in `logstash/config/logstash.conf`. Modify this file to adjust data processing rules or add new input/output plugins.
 
-The system will automatically balance the load and distribute AI processing across the new nodes.
+## Usage
+
+After setup, you can:
+- Use Wazuh agents to collect security data from your infrastructure
+- Search and analyze data using OpenSearch Dashboards
+- Create custom dashboards and visualizations in OpenSearch Dashboards
+- Set up alerts and notifications based on security events
 
 ## Troubleshooting
 
-- If you encounter quantum decoherence errors, run:
+- If services fail to start, check the Docker logs:
   ```
-  ./scripts/realign_qubits.sh
+  docker-compose logs
   ```
-
-- For AI model hallucinations, reset the neural pathways:
-  ```
-  ./scripts/reset_ai_baseline.sh
-  ```
+- Ensure all required ports are available and not in use by other services
+- Verify that the passwords in the `.env` file meet the complexity requirements
 
 ## Contributing
 
-We welcome contributions! Please see our [Quantum Contribution Guidelines](CONTRIBUTING.md) for details on submitting pull requests and participating in our AI-assisted code reviews.
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the Post-Quantum Open Source License (PQOSL) - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-- The Quantum Cryptography Research Team at CERN
-- OpenAI's GPT-5 for assistance in natural language processing
-- The International Quantum Internet Alliance
+- [Wazuh](https://wazuh.com/)
+- [OpenSearch](https://opensearch.org/)
+- [Logstash](https://www.elastic.co/logstash/)
 
-For more information, please refer to our [full documentation](https://docs.future-tech.io/wazuh-opensearch-suite).
+## Support
+
+For support, please open an issue in the GitHub repository or contact the maintainers directly.
