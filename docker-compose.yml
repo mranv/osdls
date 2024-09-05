@@ -56,6 +56,8 @@ services:
       - 5601:5601
     environment:
       OPENSEARCH_HOSTS: '["https://opensearch-node1:9200","https://opensearch-node2:9200"]'
+      OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME}
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD}
     networks:
       - opensearch-net
 
@@ -83,13 +85,15 @@ services:
   logstash:
     image: docker.elastic.co/logstash/logstash:7.10.2
     container_name: logstash
+    user: root
     volumes:
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
       - ./logstash/config:/usr/share/logstash/config:ro
       - ./logstash/templates:/etc/logstash/templates:ro
       - ./logstash/certs:/etc/logstash/certs:ro
+      - wazuh-logs:/var/ossec/logs:ro
     environment:
-      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+      LS_JAVA_OPTS: "-Xmx512m -Xms512m"
       LOGSTASH_KEYSTORE_PASS: ${LOGSTASH_KEYSTORE_PASS}
       OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME}
       OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD}
@@ -99,7 +103,20 @@ services:
       - opensearch-node1
       - opensearch-node2
       - wazuh
-
+    command: >
+      bash -c '
+        bin/logstash-plugin install --no-verify logstash-output-opensearch
+        if getent group wazuh > /dev/null 2>&1; then
+          usermod -a -G wazuh logstash
+        else
+          groupadd -g 1000 wazuh
+          usermod -a -G wazuh logstash
+        fi
+        chown -R logstash:logstash /usr/share/logstash/data
+        su logstash -c "bin/logstash -f /usr/share/logstash/pipeline/wazuh-opensearch.conf --path.settings /usr/share/logstash/config"
+      '
+      
+    
 volumes:
   opensearch-data1:
   opensearch-data2:

@@ -1,2 +1,2 @@
-- pipeline.id: wazuh
+- pipeline.id: main
   path.config: "/usr/share/logstash/pipeline/wazuh-opensearch.conf"
