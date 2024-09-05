@@ -28,8 +28,12 @@ if ! docker info &> /dev/null; then
     exit 1
 fi
 
-# Check if Docker Compose is installed
-if ! command -v docker-compose &> /dev/null; then
+# Check for Docker Compose and set the appropriate command
+if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+elif docker compose version &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker compose"
+else
     echo "Docker Compose is not installed. Please install Docker Compose and try again."
     exit 1
 fi
@@ -101,13 +105,12 @@ openssl req -x509 -newkey rsa:4096 -keyout logstash/certs/key.pem -out logstash/
 cp docker-compose.yml docker-compose.yml.bak
 
 # Add Logstash service to docker-compose.yml
-# Using awk instead of sed for better multi-line insertion
 awk '/services:/{print;print "  logstash:";print "    image: docker.elastic.co/logstash/logstash:7.10.2";print "    container_name: logstash";print "    volumes:";print "      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro";print "      - ./logstash/config:/usr/share/logstash/config:ro";print "      - ./logstash/templates:/etc/logstash/templates:ro";print "      - ./logstash/certs:/etc/logstash/certs:ro";print "    environment:";print "      LS_JAVA_OPTS: \"-Xmx256m -Xms256m\"";print "      LOGSTASH_KEYSTORE_PASS: ${LOGSTASH_KEYSTORE_PASS}";print "    networks:";print "      - opensearch-net";print "    depends_on:";print "      - opensearch-node1";print "      - opensearch-node2";print "      - wazuh";print "    command: >";print "      bash -c '";print "        bin/logstash-plugin install --no-verify logstash-output-opensearch";print "        mkdir -p /etc/logstash/templates";print "        curl -o /etc/logstash/templates/wazuh.json https://packages.wazuh.com/integrations/opensearch/4.x-2.x/dashboards/wz-os-4.x-2.x-template.json";print "        echo \"${LOGSTASH_KEYSTORE_PASS}\" | bin/logstash-keystore --path.settings /usr/share/logstash/config create";print "        echo \"${OPENSEARCH_USERNAME}\" | bin/logstash-keystore --path.settings /usr/share/logstash/config add OPENSEARCH_USERNAME";print "        echo \"${OPENSEARCH_PASSWORD}\" | bin/logstash-keystore --path.settings /usr/share/logstash/config add OPENSEARCH_PASSWORD";print "        /usr/local/bin/docker-entrypoint";print "      '";next}1' docker-compose.yml > docker-compose.yml.new && mv docker-compose.yml.new docker-compose.yml
 
 echo "Setup complete. Starting Docker Compose..."
 
 # Start Docker Compose
-docker-compose up -d
+$DOCKER_COMPOSE_CMD up -d
 
-echo "Services are starting. You can check their status with 'docker-compose ps'"
+echo "Services are starting. You can check their status with '$DOCKER_COMPOSE_CMD ps'"
 echo "OpenSearch Dashboards will be available at http://localhost:5601 once it's fully started."
