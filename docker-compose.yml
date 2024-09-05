@@ -94,6 +94,11 @@ services:
       - "1515:1515"
       - "514:514/udp"
       - "55000:55000"
+    environment:
+      - OPENSEARCH_HOST=opensearch-node1
+      - OPENSEARCH_PORT=9200
+      - OPENSEARCH_USERNAME=${OPENSEARCH_USERNAME}
+      - OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD}
     volumes:
       - wazuh-config:/var/ossec/etc
       - wazuh-logs:/var/ossec/logs
@@ -104,7 +109,7 @@ services:
       - wazuh-agentless:/var/ossec/agentless
       - wazuh-wodles:/var/ossec/wodles
       - wazuh-api-configuration:/var/ossec/api/configuration
-      - ./opensearch/certs:/etc/wazuh-indexer/certs
+      - ./opensearch/certs:/etc/logstash/opensearch-certs
     networks:
       - opensearch-net
 
@@ -123,3 +128,4 @@ volumes:
 
 networks:
   opensearch-net:
+    driver: bridge

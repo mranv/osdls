@@ -50,20 +50,8 @@ COPY logstash/config/logstash.conf /etc/logstash/conf.d/wazuh-opensearch.conf
 COPY logstash/templates/wazuh.json /etc/logstash/templates/wazuh.json
 COPY logstash/Gemfile /opt/logstash/Gemfile
 
-# Copy OpenSearch certificate (assuming it's in the same directory as the Dockerfile)
-COPY root-ca.pem /etc/logstash/opensearch-certs/root-ca.pem
-
 # Set proper permissions
-RUN chmod -R 755 /etc/logstash/opensearch-certs/root-ca.pem && \
-    usermod -a -G wazuh logstash
-
-# Setup Logstash keystore
-RUN echo "${LOGSTASH_KEYSTORE_PASS}" > /tmp/keystore_pass && \
-    LOGSTASH_KEYSTORE_PASS=$(cat /tmp/keystore_pass) && \
-    /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash create && \
-    echo "${OPENSEARCH_USERNAME}" | /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add OPENSEARCH_USERNAME && \
-    echo "${OPENSEARCH_PASSWORD}" | /usr/share/logstash/bin/logstash-keystore --path.settings /etc/logstash add OPENSEARCH_PASSWORD && \
-    rm /tmp/keystore_pass
+RUN usermod -a -G wazuh logstash
 
 # Expose ports
 EXPOSE 55000/tcp 1514/tcp 1515/tcp 514/udp 1516/tcp 5044/tcp
