@@ -2,32 +2,22 @@
 FROM rockylinux:8
 
 # Set environment variables
-ARG WAZUH_VERSION=4.8.2
-ARG LOGSTASH_VERSION=8.15.0
-# Environment variables from .env file
-ARG OPENSEARCH_INITIAL_ADMIN_PASSWORD
-ARG LOGSTASH_KEYSTORE_PASS
-ARG OPENSEARCH_USERNAME
-ARG OPENSEARCH_PASSWORD
-
-ENV WAZUH_VERSION=${WAZUH_VERSION}
-ENV LOGSTASH_VERSION=${LOGSTASH_VERSION}
-ENV OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
-ENV LOGSTASH_KEYSTORE_PASS=${LOGSTASH_KEYSTORE_PASS}
-ENV OPENSEARCH_USERNAME=${OPENSEARCH_USERNAME}
-ENV OPENSEARCH_PASSWORD=${OPENSEARCH_PASSWORD}
+ENV WAZUH_VERSION=4.8.2
+ENV LOGSTASH_VERSION=8.15.0
+ENV OPENSEARCH_USERNAME=admin
+ENV OPENSEARCH_PASSWORD=Anubhav@321
 
 # Update the system and install dependencies
 RUN dnf update -y && \
     dnf install -y epel-release dnf-utils && \
     dnf config-manager --set-enabled powertools && \
     dnf install -y wget bzip2 policycoreutils-python-utils \
-    python3 python3-devel && \
+    python3 python3-devel findutils && \
     dnf clean all
 
 # Download Wazuh GPG key and manager package
 RUN curl -o /tmp/GPG-KEY-WAZUH https://packages.wazuh.com/key/GPG-KEY-WAZUH && \
-    curl -o /tmp/wazuh-manager-4.8.2-1.x86_64.rpm https://packages.wazuh.com/4.x/yum/wazuh-manager-4.8.2-1.x86_64.rpm
+    curl -o /tmp/wazuh-manager-${WAZUH_VERSION}-1.x86_64.rpm https://packages.wazuh.com/4.x/yum/wazuh-manager-${WAZUH_VERSION}-1.x86_64.rpm
 
 # Install Wazuh manager
 RUN rpm --import /tmp/GPG-KEY-WAZUH && \
@@ -35,14 +25,14 @@ RUN rpm --import /tmp/GPG-KEY-WAZUH && \
     rm /tmp/GPG-KEY-WAZUH /tmp/wazuh-manager*.rpm
 
 # Configure Wazuh manager
-RUN /var/ossec/bin/wazuh-keystore -f indexer -k username -v ${OPENSEARCH_USERNAME} && \
-    /var/ossec/bin/wazuh-keystore -f indexer -k password -v ${OPENSEARCH_PASSWORD}
+RUN /var/ossec/bin/wazuh-keystore -f indexer -k username -v "${OPENSEARCH_USERNAME}" && \
+    /var/ossec/bin/wazuh-keystore -f indexer -k password -v "${OPENSEARCH_PASSWORD}"
 
 # Install Logstash
 RUN rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch && \
     echo "[logstash-${LOGSTASH_VERSION}]" > /etc/yum.repos.d/logstash.repo && \
     echo "name=Elastic repository for ${LOGSTASH_VERSION} packages" >> /etc/yum.repos.d/logstash.repo && \
-    echo "baseurl=https://artifacts.elastic.co/packages/${LOGSTASH_VERSION}/yum" >> /etc/yum.repos.d/logstash.repo && \
+    echo "baseurl=https://artifacts.elastic.co/packages/${LOGSTASH_VERSION%.*}/yum" >> /etc/yum.repos.d/logstash.repo && \
     echo "gpgcheck=1" >> /etc/yum.repos.d/logstash.repo && \
     echo "gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch" >> /etc/yum.repos.d/logstash.repo && \
     echo "enabled=1" >> /etc/yum.repos.d/logstash.repo && \
@@ -64,6 +54,4 @@ RUN usermod -a -G wazuh logstash
 EXPOSE 55000/tcp 1514/tcp 1515/tcp 514/udp 1516/tcp 5044/tcp
 
 # Start Wazuh and Logstash
-CMD systemctl enable wazuh-manager && \
-    systemctl start wazuh-manager && \
-    /usr/bin/supervisord -n -c /etc/supervisord.conf
+CMD ["/bin/bash", "-c", "systemctl enable wazuh-manager && systemctl start wazuh-manager && /usr/bin/supervisord -n -c /etc/supervisord.conf"]
