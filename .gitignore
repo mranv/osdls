@@ -1,0 +1,3 @@
+logstash/certs/*
+logstash/certs/root-ca.pem
+logstash/certs/root-ca.pem
