@@ -3,9 +3,9 @@ set -e
 
 # Source the .env file
 if [ -f .env ]; then
-    export $(cat .env | grep -v '^#' | xargs)
+    export $(grep -v '^#' .env | xargs)
 else
-    echo ".env file not found. Please create one with the required environment variables."
+    echo ".env file not found in the current directory. Please create one with the required environment variables."
     exit 1
 fi
 

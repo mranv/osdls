@@ -6,14 +6,14 @@ ENV WAZUH_VERSION=4.8.2
 ENV LOGSTASH_VERSION=8.15.0
 ENV OPENSEARCH_USERNAME=admin
 ENV OPENSEARCH_PASSWORD=Anubhav@321
-ENV OPENSEARCH_HOST=localhost
+ENV OPENSEARCH_HOST=opensearch-node1
 ENV OPENSEARCH_PORT=9200
 ENV LOGSTASH_KEYSTORE_PASS=Anubhav@321
 
 # Update the system and install dependencies
 RUN dnf update -y && \
     dnf install -y epel-release dnf-utils wget bzip2 policycoreutils-python-utils \
-    python3 python3-devel findutils java-11-openjdk-devel && \
+    python3 python3-devel findutils java-11-openjdk-devel curl && \
     dnf config-manager --set-enabled powertools && \
     dnf clean all
 
@@ -38,18 +38,20 @@ RUN rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch && \
     /usr/share/logstash/bin/logstash-plugin install logstash-output-opensearch
 
 # Configure Wazuh manager
-RUN /var/ossec/bin/wazuh-control start && \
-    sleep 10 && \
-    /var/ossec/bin/wazuh-control status && \
-    /var/ossec/bin/wazuh-control stop
+RUN mkdir -p /var/ossec/logs && \
+    touch /var/ossec/logs/ossec.log && \
+    chown -R wazuh:wazuh /var/ossec
 
 # Configure Logstash
-RUN mkdir -p /etc/logstash/conf.d /etc/logstash/templates && \
+RUN mkdir -p /etc/logstash/conf.d /etc/logstash/templates /etc/logstash/certs && \
     curl -o /etc/logstash/templates/wazuh.json https://packages.wazuh.com/integrations/opensearch/4.x-2.x/dashboards/wz-os-4.x-2.x-template.json && \
-    chown -R logstash:logstash /etc/logstash/conf.d /etc/logstash/templates
+    chown -R logstash:logstash /etc/logstash/conf.d /etc/logstash/templates /etc/logstash/certs
 
 # Add Logstash configuration
 COPY logstash/config/wazuh-opensearch.conf /etc/logstash/conf.d/wazuh-opensearch.conf
+
+# Copy OpenSearch root CA certificate
+COPY opensearch/certs/root-ca.pem /etc/logstash/certs/root-ca.pem
 
 # Set up Logstash keystore
 RUN mkdir -p /etc/sysconfig && \
@@ -68,8 +70,11 @@ EXPOSE 1514/udp 1515/tcp 1516/tcp 55000/tcp 5044/tcp
 
 # Create a startup script
 RUN echo '#!/bin/bash' > /start.sh && \
-    echo 'sed -i "s/<OPENSEARCH_ADDRESS>/${OPENSEARCH_HOST}:${OPENSEARCH_PORT}/g" /etc/logstash/conf.d/wazuh-opensearch.conf' >> /start.sh && \
+    echo 'sed -i "s/OPENSEARCH_HOST/${OPENSEARCH_HOST}/g" /etc/logstash/conf.d/wazuh-opensearch.conf' >> /start.sh && \
+    echo 'sed -i "s/OPENSEARCH_PORT/${OPENSEARCH_PORT}/g" /etc/logstash/conf.d/wazuh-opensearch.conf' >> /start.sh && \
     echo '/var/ossec/bin/wazuh-control start' >> /start.sh && \
+    echo 'sleep 10' >> /start.sh && \
+    echo 'export LOGSTASH_KEYSTORE_PASS' >> /start.sh && \
     echo '/usr/share/logstash/bin/logstash -f /etc/logstash/conf.d/wazuh-opensearch.conf --path.settings /etc/logstash &' >> /start.sh && \
     echo 'tail -f /var/ossec/logs/ossec.log' >> /start.sh && \
     chmod +x /start.sh
