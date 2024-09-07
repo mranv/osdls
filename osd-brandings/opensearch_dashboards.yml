@@ -1,0 +1,18 @@
+opensearchDashboards.branding:
+  logo:
+    defaultUrl: "https://raw.githubusercontent.com/anubhavg-icpl/invinsense-branding/master/Invinsense-logo_white.svg"
+    darkModeUrl: "https://raw.githubusercontent.com/anubhavg-icpl/invinsense-branding/master/Invinsense-logo.svg"
+  mark:
+    defaultUrl: "https://raw.githubusercontent.com/anubhavg-icpl/invinsense-branding/master/icon.svg"
+    darkModeUrl: "https://raw.githubusercontent.com/anubhavg-icpl/invinsense-branding/master/icon.svg"
+  loadingLogo:
+    defaultUrl: "https://raw.githubusercontent.com/anubhavg-icpl/invinsense-branding/master/icon.svg"
+    darkModeUrl: "https://raw.githubusercontent.com/anubhavg-icpl/invinsense-branding/master/icon.svg"
+  faviconUrl: "https://raw.githubusercontent.com/Infopercept/invinsense-brandings/main/favicon.ico"
+  applicationTitle: "INVINSENSE"
+  useExpandedHeader: true
+
+
+
+
+  # TODO Make a script to deploy automatically!
