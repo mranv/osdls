@@ -2,3 +2,6 @@ logstash/certs/*
 logstash/certs/root-ca.pem
 logstash/certs/root-ca.pem
 opensearch/*
+packages/wazuhapp/opensearch-dashboards/output/wazuh-4.9.0.zip
+packages/wazuhapp/opensearch-dashboards/output/wazuhCheckUpdates-4.9.0.zip
+packages/wazuhapp/opensearch-dashboards/output/wazuhCore-4.9.0.zip
