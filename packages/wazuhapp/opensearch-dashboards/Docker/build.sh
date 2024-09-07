@@ -16,8 +16,8 @@ checksum_dir="/var/local/checksum"
 git_clone_tmp_dir="/tmp/wazuh-app"
 
 # Repositories URLs
-wazuh_app_clone_repo_url="https://github.com/wazuh/wazuh-dashboard-plugins.git"
-wazuh_app_raw_repo_url="https://raw.githubusercontent.com/wazuh/wazuh-dashboard-plugins"
+wazuh_app_clone_repo_url="https://github.com/anubhavg-icpl/invinsense-dashboard-plugins.git"
+wazuh_app_raw_repo_url="https://raw.githubusercontent.com/anubhavg-icpl/invinsense-dashboard-plugins"
 plugin_platform_app_repo_url="https://github.com/opensearch-project/OpenSearch-Dashboards.git"
 plugin_platform_app_raw_repo_url="https://raw.githubusercontent.com/opensearch-project/OpenSearch-Dashboards"
 wazuh_app_package_json_url="${wazuh_app_raw_repo_url}/${wazuh_branch}/plugins/main/package.json"
