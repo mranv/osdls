@@ -4,8 +4,8 @@ adminpem="/etc/opensearch/certs/admin.pem"
 adminkey="/etc/opensearch/certs/admin-key.pem"
 readonly base_path="$(dirname "$(readlink -f "$0")")"
 readonly config_file="${base_path}/config.yml"
-readonly logfile="${base_path}/invinsense-certificates-tool.log"
-cert_tmp_path="/tmp/invinsense-certificates"
+readonly logfile="${base_path}/openarmor-certificates-tool.log"
+cert_tmp_path="/tmp/openarmor-certificates"
 debug=">> ${logfile} 2>&1"
 readonly cert_tool_script_name=".*certs.*\.sh"
 
@@ -169,9 +169,9 @@ function cert_generateFilebeatcertificates() {
             j=$((i+1))
             declare -a server_ips=(server_node_ip_"$j"[@])
             cert_generateCertificateconfiguration "${server_name}" "${!server_ips}"
-            common_logger -d "Creating the Invinsense server tmp key pair."
+            common_logger -d "Creating the openarmor server tmp key pair."
             cert_executeAndValidate "openssl req -new -nodes -newkey rsa:2048 -keyout ${cert_tmp_path}/${server_name}-key.pem -out ${cert_tmp_path}/${server_name}.csr  -config ${cert_tmp_path}/${server_name}.conf"
-            common_logger -d "Creating the Invinsense server certificates."
+            common_logger -d "Creating the openarmor server certificates."
             cert_executeAndValidate "openssl x509 -req -in ${cert_tmp_path}/${server_name}.csr -CA ${cert_tmp_path}/root-ca.pem -CAkey ${cert_tmp_path}/root-ca.key -CAcreateserial -out ${cert_tmp_path}/${server_name}.pem -extfile ${cert_tmp_path}/${server_name}.conf -extensions v3_req -days 3650"
         done
     else
@@ -384,13 +384,13 @@ function cert_readConfig() {
 
         unique_names=($(echo "${server_node_names[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
         if [ "${#unique_names[@]}" -ne "${#server_node_names[@]}" ]; then 
-            common_logger -e "Duplicated Invinsense server node names."
+            common_logger -e "Duplicated openarmor server node names."
             exit 1
         fi
 
         unique_ips=($(echo "${server_node_ips[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
         if [ "${#unique_ips[@]}" -ne "${#server_node_ips[@]}" ]; then 
-            common_logger -e "Duplicated Invinsense server node ips."
+            common_logger -e "Duplicated openarmor server node ips."
             exit 1
         fi
 
@@ -415,17 +415,17 @@ function cert_readConfig() {
 
         if [ "${#server_node_names[@]}" -le 1 ]; then
             if [ "${#server_node_types[@]}" -ne 0 ]; then
-                common_logger -e "The tag node_type can only be used with more than one Invinsense ."
+                common_logger -e "The tag node_type can only be used with more than one openarmor ."
                 exit 1
             fi
         elif [ "${#server_node_names[@]}" -gt "${#server_node_types[@]}" ]; then
-            common_logger -e "The tag node_type needs to be specified for all Invinsense nodes."
+            common_logger -e "The tag node_type needs to be specified for all openarmor nodes."
             exit 1
         elif [ "${#server_node_names[@]}" -lt "${#server_node_types[@]}" ]; then
             common_logger -e "Found extra node_type tags."
             exit 1
         elif [ "$(grep -io master <<< "${server_node_types[*]}" | wc -l)" -ne 1 ]; then
-            common_logger -e "Invinsense cluster needs a single master node."
+            common_logger -e "openarmor cluster needs a single master node."
             exit 1
         elif [ "$(grep -io worker <<< "${server_node_types[*]}" | wc -l)" -ne $(( ${#server_node_types[@]} - 1 )) ]; then
             common_logger -e "Incorrect number of workers."
@@ -447,12 +447,12 @@ function cert_setpermisions() {
     eval "chmod -R 744 ${cert_tmp_path} ${debug}"
 }
 function cert_convertCRLFtoLF() {
-    if [[ ! -d "/tmp/invinsense-install-files" ]]; then
-        eval "mkdir /tmp/invinsense-install-files ${debug}"
+    if [[ ! -d "/tmp/openarmor-install-files" ]]; then
+        eval "mkdir /tmp/openarmor-install-files ${debug}"
     fi
-    eval "chmod -R 755 /tmp/invinsense-install-files ${debug}"
-    eval "tr -d '\015' < $1 > /tmp/invinsense-install-files/new_config.yml"
-    eval "mv /tmp/invinsense-install-files/new_config.yml $1 ${debug}"
+    eval "chmod -R 755 /tmp/openarmor-install-files ${debug}"
+    eval "tr -d '\015' < $1 > /tmp/openarmor-install-files/new_config.yml"
+    eval "mv /tmp/openarmor-install-files/new_config.yml $1 ${debug}"
 }
 
 # ------------ certMain.sh ------------ 
@@ -460,10 +460,10 @@ function getHelp() {
 
     echo -e ""
     echo -e "NAME"
-    echo -e "        invinsense-cert-tool.sh - Manages the creation of certificates of the Invinsense components."
+    echo -e "        openarmor-cert-tool.sh - Manages the creation of certificates of the openarmor components."
     echo -e ""
     echo -e "SYNOPSIS"
-    echo -e "        invinsense-cert-tool.sh [OPTIONS]"
+    echo -e "        openarmor-cert-tool.sh [OPTIONS]"
     echo -e ""
     echo -e "DESCRIPTION"
     echo -e "        -a,  --admin-certificates </path/to/root-ca.pem> </path/to/root-ca.key>"
@@ -484,11 +484,11 @@ function getHelp() {
     echo -e "        -wi,  --opensearch-certificates </path/to/root-ca.pem> </path/to/root-ca.key>"
     echo -e "                Creates the opensearch certificates, add root-ca.pem and root-ca.key."
     echo -e ""
-    echo -e "        -ws,  --invinsense-server-certificates </path/to/root-ca.pem> </path/to/root-ca.key>"
-    echo -e "                Creates the Invinsense server certificates, add root-ca.pem and root-ca.key."
+    echo -e "        -ws,  --openarmor-server-certificates </path/to/root-ca.pem> </path/to/root-ca.key>"
+    echo -e "                Creates the openarmor server certificates, add root-ca.pem and root-ca.key."
     echo -e ""
     echo -e "        -tmp,  --cert_tmp_path </path/to/tmp_dir>"
-    echo -e "                Modifies the default tmp directory (/tmp/invinsense-ceritificates) to the specified one."
+    echo -e "                Modifies the default tmp directory (/tmp/openarmor-ceritificates) to the specified one."
     echo -e "                Must be used along with one of these options: -a, -A, -ca, -wi, -wd, -ws"
     echo -e ""
 
@@ -573,9 +573,9 @@ function main() {
                     shift 3
                 fi
                 ;;
-            "-ic"|"--invinsense-certificates")
+            "-ic"|"--openarmor-certificates")
                 if [[ -z "${2}" || -z "${3}" ]]; then
-                    common_logger -e "Error on arguments. Probably missing </path/to/root-ca.pem> </path/to/root-ca.key> after -ws|--invinsense-server-certificates"
+                    common_logger -e "Error on arguments. Probably missing </path/to/root-ca.pem> </path/to/root-ca.key> after -ws|--openarmor-server-certificates"
                     getHelp
                     exit 1
                 else
@@ -609,9 +609,9 @@ function main() {
 
         common_logger "Verbose logging redirected to ${logfile}"
 
-        if [[ -d "${base_path}"/invinsense-certificates ]]; then
-            if [ -n "$(ls -A "${base_path}"/invinsense-certificates)" ]; then
-                common_logger -e "Directory invinsense-certificates already exists in the same path as the script. Please, remove the certs directory to create new certificates."
+        if [[ -d "${base_path}"/openarmor-certificates ]]; then
+            if [ -n "$(ls -A "${base_path}"/openarmor-certificates)" ]; then
+                common_logger -e "Directory openarmor-certificates already exists in the same path as the script. Please, remove the certs directory to create new certificates."
                 exit 1
             fi
         fi
@@ -633,7 +633,7 @@ function main() {
             common_logger "Admin certificates created."
             cert_cleanFiles
             cert_setpermisions
-            eval "mv ${cert_tmp_path} ${base_path}/invinsense-certificates ${debug}"
+            eval "mv ${cert_tmp_path} ${base_path}/openarmor-certificates ${debug}"
         fi
 
         if [[ -n "${all}" ]]; then
@@ -641,34 +641,34 @@ function main() {
             cert_generateAdmincertificate
             common_logger "Admin certificates created."
             if cert_generateIndexercertificates; then
-                common_logger "Invinsense indexer certificates created."
+                common_logger "openarmor indexer certificates created."
             fi
             if cert_generateFilebeatcertificates; then
-                common_logger "Invinsense Filebeat certificates created."
+                common_logger "openarmor Filebeat certificates created."
             fi
             if cert_generateDashboardcertificates; then
-                common_logger "Invinsense dashboard certificates created."
+                common_logger "openarmor dashboard certificates created."
             fi
             cert_cleanFiles
             cert_setpermisions
-            eval "mv ${cert_tmp_path} ${base_path}/invinsense-certificates ${debug}"
+            eval "mv ${cert_tmp_path} ${base_path}/openarmor-certificates ${debug}"
         fi
 
         if [[ -n "${ca}" ]]; then
             cert_generateRootCAcertificate
             common_logger "Authority certificates created."
             cert_cleanFiles
-            eval "mv ${cert_tmp_path} ${base_path}/invinsense-certificates ${debug}"
+            eval "mv ${cert_tmp_path} ${base_path}/openarmor-certificates ${debug}"
         fi
 
         if [[ -n "${cindexer}" ]]; then
             if [ ${#indexer_node_names[@]} -gt 0 ]; then
                 cert_checkRootCA
                 cert_generateIndexercertificates
-                common_logger "Invinsense indexer certificates created."
+                common_logger "openarmor indexer certificates created."
                 cert_cleanFiles
                 cert_setpermisions
-                eval "mv ${cert_tmp_path} ${base_path}/invinsense-certificates ${debug}"
+                eval "mv ${cert_tmp_path} ${base_path}/openarmor-certificates ${debug}"
             else
                 common_logger -e "Indexer node not present in config.yml."
                 exit 1
@@ -679,10 +679,10 @@ function main() {
             if [ ${#server_node_names[@]} -gt 0 ]; then
                 cert_checkRootCA
                 cert_generateFilebeatcertificates
-                common_logger "Invinsense Filebeat certificates created."
+                common_logger "openarmor Filebeat certificates created."
                 cert_cleanFiles
                 cert_setpermisions
-                eval "mv ${cert_tmp_path} ${base_path}/invinsense-certificates ${debug}"
+                eval "mv ${cert_tmp_path} ${base_path}/openarmor-certificates ${debug}"
             else
                 common_logger -e "Server node not present in config.yml."
                 exit 1
@@ -693,10 +693,10 @@ function main() {
             if [ ${#dashboard_node_names[@]} -gt 0 ]; then
                 cert_checkRootCA
                 cert_generateDashboardcertificates
-                common_logger "Invinsense dashboard certificates created."
+                common_logger "openarmor dashboard certificates created."
                 cert_cleanFiles
                 cert_setpermisions
-                eval "mv ${cert_tmp_path} ${base_path}/invinsense-certificates ${debug}"
+                eval "mv ${cert_tmp_path} ${base_path}/openarmor-certificates ${debug}"
             else
                 common_logger -e "Dashboard node not present in config.yml."
                 exit 1
@@ -782,21 +782,21 @@ function common_checkRoot() {
 }
 function common_checkInstalled() {
 
-    common_logger -d "Checking Invinsense installation."
-    invinsense_installed=""
+    common_logger -d "Checking openarmor installation."
+    openarmor_installed=""
     indexer_installed=""
     filebeat_installed=""
     dashboard_installed=""
 
     if [ "${sys_type}" == "yum" ]; then
-        eval "rpm -q invinsense --quiet && invinsense_installed=1"
+        eval "rpm -q openarmor --quiet && openarmor_installed=1"
     elif [ "${sys_type}" == "apt-get" ]; then
-        invinsense_installed=$(apt list --installed  2>/dev/null | grep invinsense)
+        openarmor_installed=$(apt list --installed  2>/dev/null | grep openarmor)
     fi
 
     if [ -d "/var/ossec" ]; then
-        common_logger -d "There are Invinsense remaining files."
-        invinsense_remaining_files=1
+        common_logger -d "There are openarmor remaining files."
+        openarmor_remaining_files=1
     fi
 
     if [ "${sys_type}" == "yum" ]; then
@@ -807,7 +807,7 @@ function common_checkInstalled() {
     fi
 
     if [ -d "/var/lib/opensearch/" ] || [ -d "/usr/share/opensearch" ] || [ -d "/etc/opensearch" ] || [ -f "${base_path}/search-guard-tlstool*" ]; then
-        common_logger -d "There are Invinsense indexer remaining files."
+        common_logger -d "There are openarmor indexer remaining files."
         indexer_remaining_files=1
     fi
 
@@ -829,7 +829,7 @@ function common_checkInstalled() {
     fi
 
     if [ -d "/var/lib/opensearch-dashboard/" ] || [ -d "/usr/share/opensearch-dashboard" ] || [ -d "/etc/opensearch-dashboard" ] || [ -d "/run/opensearch-dashboard/" ]; then
-        common_logger -d "There are Invinsense dashboard remaining files."
+        common_logger -d "There are openarmor dashboard remaining files."
         dashboard_remaining_files=1
     fi
 
@@ -850,9 +850,9 @@ function common_checkSystem() {
     fi
 
 }
-function common_checkInvinsenseConfigYaml() {
+function common_checkopenarmorConfigYaml() {
 
-    common_logger -d "Checking Invinsense YAML configuration file."
+    common_logger -d "Checking openarmor YAML configuration file."
     filecorrect=$(cert_parseYaml "${config_file}" | grep -Ev '^#|^\s*$' | grep -Pzc "\A(\s*(nodes_indexer__name|nodes_indexer__ip|nodes_server__name|nodes_server__ip|nodes_server__node_type|nodes_dashboard__name|nodes_dashboard__ip)=.*?)+\Z")
     if [[ "${filecorrect}" -ne 1 ]]; then
         common_logger -e "The configuration file ${config_file} does not have a correct format."
@@ -883,18 +883,18 @@ function common_remove_gpg_key() {
 
     common_logger -d "Removing GPG key from system."
     if [ "${sys_type}" == "yum" ]; then
-        if { rpm -q gpg-pubkey --qf '%{NAME}-%{VERSION}-%{RELEASE}\t%{SUMMARY}\n' | grep "Invinsense"; } >/dev/null ; then
-            key=$(rpm -q gpg-pubkey --qf '%{NAME}-%{VERSION}-%{RELEASE}\t%{SUMMARY}\n' | grep "Invinsense Signing Key" | awk '{print $1}' )
+        if { rpm -q gpg-pubkey --qf '%{NAME}-%{VERSION}-%{RELEASE}\t%{SUMMARY}\n' | grep "openarmor"; } >/dev/null ; then
+            key=$(rpm -q gpg-pubkey --qf '%{NAME}-%{VERSION}-%{RELEASE}\t%{SUMMARY}\n' | grep "openarmor Signing Key" | awk '{print $1}' )
             rpm -e "${key}"
         else
-            common_logger "Invinsense GPG key not found in the system"
+            common_logger "openarmor GPG key not found in the system"
             return 1
         fi
     elif [ "${sys_type}" == "apt-get" ]; then
-        if [ -f "/usr/share/keyrings/invinsense.gpg" ]; then
-            rm -rf "/usr/share/keyrings/invinsense.gpg" "${debug}"
+        if [ -f "/usr/share/keyrings/openarmor.gpg" ]; then
+            rm -rf "/usr/share/keyrings/openarmor.gpg" "${debug}"
         else
-            common_logger "Invinsense GPG key not found in the system"
+            common_logger "openarmor GPG key not found in the system"
             return 1
         fi
     fi

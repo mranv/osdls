@@ -5,10 +5,10 @@
 <strong>os / osd + logstash + wazuh</strong>
 </h1>
 
-
 This project provides a seamless integration between Wazuh, a free and open-source security platform, and OpenSearch, a community-driven, open-source search and analytics suite. This integration allows for efficient log management, security event analysis, and real-time monitoring of your infrastructure.
 
 The setup includes:
+
 - Wazuh manager for security event collection and analysis
 - OpenSearch cluster for powerful search and analytics capabilities
 - OpenSearch Dashboards for visualization and data exploration
@@ -33,21 +33,25 @@ The setup includes:
 ## Quick Start
 
 1. Clone the repository:
+
    ```
-   git clone https://github.com/anubhavg-icpl/osdls.git
+   git clone https://github.com/openarmor/osdls.git
    cd osdls
    ```
 
 2. Create a `.env` file in the project root with the following content:
+
    ```
    OPENSEARCH_INITIAL_ADMIN_PASSWORD=your_secure_password
    OPENSEARCH_PASSWORD=your_secure_password
    OPENSEARCH_USERNAME=admin
    LOGSTASH_KEYSTORE_PASS=your_secure_password
    ```
+
    Replace `your_secure_password` with strong, unique passwords.
 
 3. Run the setup script:
+
    ```
    chmod +x setup.sh
    ./setup.sh
@@ -58,6 +62,7 @@ The setup includes:
 ## Detailed Setup
 
 The `setup.sh` script performs the following actions:
+
 1. Validates the environment and prerequisites
 2. Builds a custom Docker image containing Wazuh and Logstash
 3. Updates the `docker-compose.yml` file to use the custom image
@@ -92,6 +97,7 @@ Logstash configuration is located in `logstash/config/logstash.conf`. Modify thi
 ## Usage
 
 After setup, you can:
+
 - Use Wazuh agents to collect security data from your infrastructure
 - Search and analyze data using OpenSearch Dashboards
 - Create custom dashboards and visualizations in OpenSearch Dashboards
